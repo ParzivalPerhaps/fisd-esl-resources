@@ -1,8 +1,15 @@
-import { Roboto } from "next/font/google";
+import { Roboto, Roboto_Slab } from "next/font/google";
 import "./globals.css";
+
+// random comment
 
 const roboto = Roboto({
   variable: "--font-roboto",
+  subsets: ["latin"],
+});
+
+const robotoSlab = Roboto_Slab({
+  variable: "--font-roboto-slab",
   subsets: ["latin"],
 });
 
@@ -22,7 +29,7 @@ export default function RootLayout({ children }) {
         <ColorSchemeScript />
       </head>
       <body
-        className={`${roboto.variable} antialiased`}
+        className={`${roboto.variable} ${robotoSlab.variable} antialiased`}
       >
         <MantineProvider>{children}</MantineProvider>
       </body>
