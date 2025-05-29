@@ -9,9 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google-cloud/translate": "^9.1.0",
     "@mantine/core": "^8.0.1",
     "@mantine/hooks": "^8.0.1",
     "fisd_esl_resources_website": "file:",
+    "fuse.js": "^7.1.0",
+    "language-name-map": "^0.3.0",
     "mongoose": "^8.15.1",
     "next": "15.3.2",
     "react": "^19.0.0",
