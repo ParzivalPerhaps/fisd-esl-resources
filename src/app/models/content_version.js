@@ -143,8 +143,74 @@ const contentVersionSchema = new mongoose.Schema({
   school_map_action_text: {
     type: String,
     required: true,
-    default: 'Navigate the school campus with this detailed map.'
+    default: 'View Map'
   },
+  translation_help_header: {
+    type: String,
+    required: true,
+    default: 'Translation Help'
+  },
+  translation_read_more_action_text: {
+    type: String,
+    required: true,
+    default: 'How to use'
+  },
+  translation_google_translate_header: {
+    type: String,
+    required: true,
+    default: 'Google Translate'
+  },
+  translation_google_translate_description: {
+    type: String,
+    required: true,
+    default: 'Translate text, websites, or documents between languages.'
+  },
+  translation_google_translate_instructions_1: {
+    type: String,
+    required: true,
+    default: 'Go to'
+  },
+  translation_google_translate_instructions_2: {
+    type: String,
+    required: true,
+    default: 'on a web browser, or search "Google Translate"'
+  },
+  translation_google_translate_instructions_3: {
+    type: String,
+    required: true,
+    default: 'Google Translate is capable of translating'
+  },
+  translation_google_translate_instructions_4: {
+    type: String,
+    required: true,
+    default: 'Text, Images, Documents, and Websites'
+  },
+  translation_google_lens_header: {
+    type: String,
+    required: true,
+    default: 'Google Lens'
+  },
+  translation_google_lens_description: {
+    type: String,
+    required: true,
+    default: 'Take a photo of text and translate it instantly.'
+  },
+  translation_google_lens_instructions_1: {
+    type: String,
+    required: true,
+    default: 'Download the Google Lens app from the'
+  },
+  translation_google_lens_instructions_app_store: {
+    type: String,
+    required: true,
+    default: 'iOS App Store'
+  },
+  translation_google_lens_instructions_google_play_store: {
+    type: String,
+    required: true,
+    default: 'Google Play Store'
+  },
+  
   school_website_link: {
     type: String,
     required: true,

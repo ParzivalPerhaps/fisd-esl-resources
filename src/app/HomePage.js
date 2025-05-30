@@ -34,7 +34,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
   const [expandedTab, setExpandedTab] = useState(-1);
   const [cloudLangs, setCloudLangs] = useState([]);
 
-  const [languageChips, setLanguageChips] = useState(languages)
+  const [languageChips, setLanguageChips] = useState([])
   const [currentLang, setCurrentLang] = useState("English");
 
   const [currentLangCode, setCurrentLangCode] = useState('en')
@@ -43,12 +43,23 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
 
   const [loading, setLoading] = useState(true);
 
-  async function getPossibleLanguagesFromName(name) {
-    
+
+  function shuffle(array) {
+    let currentIndex = array.length;
+  
+    while (currentIndex != 0) {
+  
+      let randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+  
+      [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
   }
 
-  async function topTextAnim() {
-    const titles = languages;
+  async function topTextAnim(langs) {
+    shuffle(langs)
+    const titles = langs; 
     let deleting = false;
 
     let titleIndex = 0;
@@ -112,6 +123,10 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
     console.log(n);
 
     setCloudLangs(n.languages);
+
+    topTextAnim(n.languages.map((q) => {
+      return q.name
+    }));
     
     
     fuse = new Fuse(n.languages.map((x) => {
@@ -143,7 +158,6 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
 
 
   useEffect(() => {
-    topTextAnim();
     getLangs('en')
   }, [])
 
@@ -186,17 +200,45 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
       <Input onChange={(e) => {
         if (loading) return;
 
-        setLanguageChips(fuse.search(e.target.value.toLowerCase()).filter((c) => {
+        let r = fuse.search(e.target.value.toLowerCase()).filter((c) => {
             return c != undefined
         }).map((a) => {
             return a.item.name.substring(0, 1).toUpperCase() + a.item.name.substring(1, a.item.name.length)
         }).filter((q, i, arr) => {
             return arr.indexOf(q) == i;
-        }))
+        });
+
+        r = r.slice(0, Math.min(r.length, 25))
+
+        r = r.reverse();
+
+        setLanguageChips(r)
       }} className="m-auto justify-center max-w-[400px] w-[80%] text-center" radius={'md'} variant="filled" placeholder={displayLangPlaceholder} />
     </div>
-    <div className="w-[90%] items-center flex-wrap flex justify-center m-auto mt-3">
+    <div className="w-[90%] items-center flex-wrap flex justify-center m-auto mt-3 h-[200px] overflow-hidden transition-all duration-200">
       {
+        cloudLangs.sort((a, b) => {
+          const aV = languageChips.findIndex((w) => {
+            return w.toLowerCase() == a.name;
+          })
+
+          const bV = languageChips.findIndex((w) => {
+            return w.toLowerCase() == b.name;
+          })
+
+          return bV - aV;
+        }).map((z, i) => {
+          return <div style={{visibility: languageChips.some((w) => {
+            return w.toLowerCase() == z.name
+          }) ? 'visible' : 'hidden',
+          opacity: languageChips.some((w) => {
+            return w.toLowerCase() == z.name
+          }) ? 1 : 0}} key={z.code} className="bg-[#184366] p-1 rounded-sm m-3 cursor-pointer transition-all duration-200">
+          <p className="text-white">{z.name.substring(0, 1).toUpperCase() + z.name.substring(1, z.name.length)}</p>
+      </div>
+          
+        })
+        /*
         languageChips.map((z, i) => {
             if (!z) return <div key={i}></div>
 
@@ -226,7 +268,9 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
             }} className="bg-[#e8b20f51] p-1 rounded-sm m-3 cursor-pointer transition-all duration-200">
                 <p className="text-[#184366]">{z}</p>
             </div>
+
         })
+            */
       }
     </div>
 
@@ -318,11 +362,11 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
 
     <div className="flex gap-y-40 h-fit pb-20 flex-wrap w-[85%] m-auto justify-center mt-10">
     <div className="w-[28%] min-w-[300px] shadow h-[290px] m-auto rounded-md bg-[#184366]">
-        <div className="h-min-20 flex sm:h-fit md:h-fit default:h-fit m-auto flex-wrap p-3 w-[100%]">
-            <CalendarIcon className="fill-white w-[30px] h-[35px] m-auto"/>
-            <h1 className="text-white pl-3 text-[25px] m-auto">{contentVersion.ab_calendar_header || "FISD A/B Calendar"}</h1>
+      <div className="h-min-20 flex h-fit m-auto flex-wrap p-3 w-[100%]">
+        <CalendarIcon className="fill-white w-[35px] h-[35px] m-auto"/>
+        <h1 className="text-white text-[30px] ml-3 m-auto">{contentVersion.school_website_header || "FISD A/B Calendar"}</h1>
         </div>
-        <div className="h-min-20 flex h-fit rounded-md m-auto flex-wrap border-[#184366] border-2 p-3 bg-white w-[100%]">
+        <div className="h-min-20 flex min-h-[250px] h-fit rounded-md m-auto flex-wrap border-[#184366] border-2 p-3 bg-white w-[100%]">
             <p className="w-[80%] m-auto text-2xl mb-5">
               {contentVersion.ab_calendar_description || "View the official school calendar for important dates and events."}
             </p>
@@ -336,25 +380,25 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
         <SchoolIcon className="fill-white w-[35px] h-[35px] m-auto"/>
         <h1 className="text-white text-[30px] ml-3 m-auto">{contentVersion.school_website_header || "School Website"}</h1>
         </div>
-          <div className="h-min-20 flex h-fit rounded-md m-auto flex-wrap border-[#184366] border-2 p-3 bg-white w-[100%]">
+          <div className="h-min-20 flex min-h-[250px] h-fit rounded-md m-auto flex-wrap border-[#184366] border-2 p-3 bg-white w-[100%]">
               <p className="w-[80%] m-auto text-2xl mb-5">
                 {contentVersion.school_website_description || "Visit the official Emerson High School website for news and resources."}
               </p>
-              <div onClick={() => {window.location.href = contentVersion.school_website_link || "https://schools.friscoisd.org/campus/high-school/emerson/home"}} className="w-[90%] rounded-md cursor-pointer m-auto p-3 bg-[#e8b20f]">
+              <div onClick={() => {window.location.href = contentVersion.school_website_link || "https://schools.friscoisd.org/campus/high-school/emerson/home"}} className="w-[90%] rounded-md cursor-pointer m-auto p-3 hover:bg-[#e8b20f54] transition-all duration-130 bg-[#e8b20f]">
                 <p className="text-center font-semibold text-[#184366]">{contentVersion.school_website_action_text || "Visit Website"}</p>
               </div>
           </div>
       </div>
       <div className="w-[28%] min-w-[300px] shadow h-[290px] m-auto rounded-md bg-[#184366]">
-        <div className="h-min-20 flex h-fit m-auto flex-wrap p-3 w-[100%]">
+      <div className="h-min-20 flex h-fit m-auto flex-wrap p-3 w-[100%]">
           <MapIcon className="fill-white w-[35px] h-[40px] m-auto"/>
           <h1 className="text-white text-[30px] ml-0 m-auto">{contentVersion.school_map_header || "School Map"}</h1>
           </div>
-          <div className="h-min-20 flex h-[230px] rounded-md m-auto flex-wrap border-[#184366] border-2 p-3 bg-white w-[100%]">
+          <div className="h-min-20 flex min-h-[250px] h-fit rounded-md m-auto flex-wrap border-[#184366] border-2 p-3 bg-white w-[100%]">
               <p className="w-[80%] m-auto text-2xl mb-5">
               {contentVersion.school_map_description || "Navigate the school campus with this detailed map."}
               </p>
-              <div onClick={() => {window.location.href = "https://drive.google.com/file/d/1IpKtwHjp_Qco_eA7uNKZRl6bkHc5yqrb/view?usp=sharing"}} className="w-[90%] rounded-md cursor-pointer m-auto p-3 bg-[#e8b20f]">
+              <div onClick={() => {window.location.href = "https://drive.google.com/file/d/1IpKtwHjp_Qco_eA7uNKZRl6bkHc5yqrb/view?usp=sharing"}} className="w-[90%] rounded-md cursor-pointer m-auto p-3 hover:bg-[#e8b20f54] transition-all duration-130 bg-[#e8b20f]">
                 <p className="text-center font-semibold text-[#184366]">View Map</p>
               </div>
           </div>
