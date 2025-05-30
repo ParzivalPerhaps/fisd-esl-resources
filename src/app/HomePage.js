@@ -14,6 +14,9 @@ import MicrophoneIcon from "./MicrophoneIcon"
 import ChatIcon from "./MessageIcon"
 import MicrosoftIcon from "./MicrosoftTranslateIcon"
 import ConversationIcon from "./ConversationIcon"
+import EmailIcon from "./EmailIcon"
+import TalkingPointsIcon from "./TalkingPointsIcon"
+import FisdLogo from "../../public/fisd-logo-white-rgb.svg"
 
 import Fuse from 'fuse.js'
 
@@ -21,8 +24,10 @@ import { getPossibleLangs, getContent, getSupportedLanguages } from "./backend_a
 
 import { getLangCodeList, getLangNameFromCode } from "language-name-map";
 
-import { Popover, PopoverTarget, PopoverDropdown, Input, NumberInput } from '@mantine/core';
-import { useEffect, useState } from "react";
+import { Popover, PopoverTarget, Center, Modal, Loader, PopoverDropdown, Input, NumberInput } from '@mantine/core';
+import { useEffect, useState, useRef } from "react";
+
+import { useParams } from "next/navigation";
 
 let fuse = undefined;
 
@@ -42,6 +47,18 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
   const [contentVersion, setContentVersion] = useState({});
 
   const [loading, setLoading] = useState(true);
+
+  const scheduleScrollRef = useRef(null);
+
+  const linkScrollRef = useRef(null);
+
+  const helpScrollRef = useRef(null);
+
+  const contactScrollRef = useRef(null);
+
+  const [onNewCloudLangs, setOnNewCloudLangs] = useState();
+
+  const { version_id } = useParams();
 
 
   function shuffle(array) {
@@ -120,13 +137,15 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
   async function getLangs(langCode) {
     setLoading(true);
     const n = await getSupportedLanguages(langCode);
-    console.log(n);
+
+    if (cloudLangs.length == 0) {
+        topTextAnim(n.languages.map((q) => {
+            return q.name
+          }));      
+    }
 
     setCloudLangs(n.languages);
-
-    topTextAnim(n.languages.map((q) => {
-      return q.name
-    }));
+    
     
     
     fuse = new Fuse(n.languages.map((x) => {
@@ -163,19 +182,46 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
 
   return (
     <>
-    <div style={{display:'flex', padding:'auto'}} className="w-12/12 bg-[#184366] h-[75px] justify-right">
-    <div className="w-[28%] flex justify-center items-center m-auto">
-      <p className="text-white font-[450] p-2 m-auto text-lg cursor-pointer">
-          SCHEDULE
+    <Modal classNames={{body:'bg-[#184366]'}} opened={loading} centered={true} onClose={() => {}} withCloseButton={false}>
+        <h1 className="text-center text-[23px] text-[#e8b20f] p-3">
+            Doing some magic...
+        </h1>
+        <div className="justify-center w-[100%] m-auto">
+            <Center>
+                <Loader color="#e8b20f" />
+            </Center>
+            
+        </div>
+        
+      </Modal>
+
+    <div style={{display:'flex', padding:'auto'}} className="w-12/12 bg-[#184366] h-fit h-min-[75px] justify-right">
+    <div className="w-[75%] flex flex-wrap justify-center items-center m-auto">
+        <Image
+        priority
+        className="w-[250px] m-auto p-3"
+        src={FisdLogo}
+        alt="Frisco ISD Logo"
+        />
+      <p onClick={() => {
+        scheduleScrollRef.current.scrollIntoView({behavior: 'smooth', block: 'center'})
+      }} className="text-white font-light p-2 m-auto text-lg cursor-pointer">
+          {(contentVersion.schedule_nav_header || "SCHEDULE").toUpperCase()}
         </p>
-        <p className="text-white font-[450] p-2 m-auto text-lg cursor-pointer">
-          LINKS
+        <p onClick={() => {
+        linkScrollRef.current.scrollIntoView({behavior: 'smooth', block: 'center'})
+      }} className="text-white font-light p-2 m-auto text-lg cursor-pointer">
+          {(contentVersion.links_nav_header || "LINKS").toUpperCase()}
         </p>
-        <p className="text-white font-[450] p-2 m-auto text-lg cursor-pointer">
-          HELP
+        <p onClick={() => {
+        helpScrollRef.current.scrollIntoView({behavior: 'smooth', block: 'center'})
+      }} className="text-white font-light p-2 m-auto text-lg cursor-pointer">
+        {(contentVersion.help_nav_header || "HELP").toUpperCase()}
         </p>
-        <p className="text-white font-[450] p-2 m-auto text-lg cursor-pointer">
-          CONTACT
+        <p onClick={() => {
+        contactScrollRef.current.scrollIntoView({behavior: 'smooth', block: 'center'})
+      }} className="text-white font-light p-2 m-auto text-lg cursor-pointer">
+        {(contentVersion.contact_nav_header || "CONTACT").toUpperCase()}
       </p>
     </div>
       
@@ -198,7 +244,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
     </div>
     <div className="w-[100%] items-center m-auto justify-center">
       <Input onChange={(e) => {
-        if (loading) return;
+        if (loading || e.target.value == "" || !fuse) return;
 
         let r = fuse.search(e.target.value.toLowerCase()).filter((c) => {
             return c != undefined
@@ -215,7 +261,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
         setLanguageChips(r)
       }} className="m-auto justify-center max-w-[400px] w-[80%] text-center" radius={'md'} variant="filled" placeholder={displayLangPlaceholder} />
     </div>
-    <div className="w-[90%] items-center flex-wrap flex justify-center m-auto mt-3 h-[200px] overflow-hidden transition-all duration-200">
+    <div className="w-[80%] items-start flex-wrap flex justify-start m-auto mt-3 h-[140px] overflow-hidden transition-all duration-200">
       {
         cloudLangs.sort((a, b) => {
           const aV = languageChips.findIndex((w) => {
@@ -228,12 +274,26 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
 
           return bV - aV;
         }).map((z, i) => {
-          return <div style={{visibility: languageChips.some((w) => {
+          return <div onClick={async () => {
+                setLoading(true);
+                const res = await getContent(version_id || 'ehs', z.code)
+
+                setCurrentLangCode(cloudLangs.find((w) => {
+                    return w.name.toLowerCase() == z.name.toLowerCase()
+                }).code);
+
+                await getLangs(cloudLangs.find((w) => {
+                    return w.name.toLowerCase() == z.name.toLowerCase()
+                }).code);
+
+                setContentVersion(res.content);
+                setLoading(false);
+            }} style={{visibility: languageChips.some((w) => {
             return w.toLowerCase() == z.name
           }) ? 'visible' : 'hidden',
           opacity: languageChips.some((w) => {
             return w.toLowerCase() == z.name
-          }) ? 1 : 0}} key={z.code} className="bg-[#184366] p-1 rounded-sm m-3 cursor-pointer transition-all duration-200">
+          }) ? 1 : 0}} key={z.code} className="bg-[#184366] p-1 rounded-sm m-3 mt-1 mb-3 cursor-pointer transition-all duration-200">
           <p className="text-white">{z.name.substring(0, 1).toUpperCase() + z.name.substring(1, z.name.length)}</p>
       </div>
           
@@ -274,7 +334,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
       }
     </div>
 
-    <div className="w-[80%] shadow-lg items-center p-1 justify-center m-auto rounded-md mt-20 bg-[#184366]"> 
+    <div ref={scheduleScrollRef} className="w-[80%] shadow-lg items-center p-1 justify-center m-auto rounded-md mt-20 bg-[#184366]"> 
       <h1 className="text-left w-[fit-content]] text-white text-[30px] p-7 pr-0 flex">{contentVersion.bell_schedule_label || "2025 - 2026 Bell Schedule"}<ClockIcon className="m-auto fill-[#ffffff] ml-[1%] w-10 h-9"/></h1>
         
       <div className="rounded-tl-md rounded-tr-md m-7 mb-0 mt-1 bg-[#e8b20f] flex justify-center">
@@ -360,7 +420,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
       <h1 className="text-left w-[fit-content]] text-[#184366] text-[30px] p-0 pr-0 flex">{contentVersion.important_links_header || "Important Links"}<LinkIcon className="m-auto fill-[#ffffff] ml-[1%] w-10 h-9"/></h1>
     </div>
 
-    <div className="flex gap-y-40 h-fit pb-20 flex-wrap w-[85%] m-auto justify-center mt-10">
+    <div ref={linkScrollRef} className="flex gap-y-40 h-fit pb-20 flex-wrap w-[85%] m-auto justify-center mt-10">
     <div className="w-[28%] min-w-[300px] shadow h-[290px] m-auto rounded-md bg-[#184366]">
       <div className="h-min-20 flex h-fit m-auto flex-wrap p-3 w-[100%]">
         <CalendarIcon className="fill-white w-[35px] h-[35px] m-auto"/>
@@ -399,45 +459,45 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
               {contentVersion.school_map_description || "Navigate the school campus with this detailed map."}
               </p>
               <div onClick={() => {window.location.href = "https://drive.google.com/file/d/1IpKtwHjp_Qco_eA7uNKZRl6bkHc5yqrb/view?usp=sharing"}} className="w-[90%] rounded-md cursor-pointer m-auto p-3 hover:bg-[#e8b20f54] transition-all duration-130 bg-[#e8b20f]">
-                <p className="text-center font-semibold text-[#184366]">View Map</p>
+                <p className="text-center font-semibold text-[#184366]">{contentVersion.school_map_action_text || "View Map"}</p>
               </div>
           </div>
       </div>
     </div>
     
     <div className="w-[80%] justify-center m-auto mt-20">
-      <h1 className="text-left w-[fit-content]] text-[#184366] text-[30px] p-0 pr-0 flex">Translation Help</h1>
+      <h1 className="text-left w-[fit-content]] text-[#184366] text-[30px] p-0 pr-0 flex">{contentVersion.translation_help_header || "Translation Help"}</h1>
     </div>
 
-    <div className="bg-[#184366] flex-wrap w-[80%] flex gap-10 justify-center mt-10 m-auto rounded-md p-10">
+    <div ref={helpScrollRef} className="bg-[#184366] flex-wrap w-[80%] flex gap-10 justify-center mt-10 m-auto rounded-md p-10">
       <div className="rounded-md bg-[#184366] border-[#e8b20f] p-2 border-2 min-w-[250px] w-[45%]">
         <h1 className="text-white text-[20px] flex">
           <GoogleTranslateIcon className="fill-white w-[40px] h-[25px] mt-auto mb-auto"/>
-          Google Translate
+          {contentVersion.translation_google_translate_header || "Google Translate"}
         </h1>
         <p className="text-white">
-        Translate text, websites, or documents between languages.
+        {contentVersion.translation_google_translate_description || "Translate text, websites, or documents between languages."}
         </p>
         {
           expandedTab == 0 ?
-          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto rotate-180 mb-auto w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+            {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto rotate-180 mb-auto w-[20px] ml-1 h-[27px] transition-all duration-150"/>
           </p>
           :
-          <p onClick={() => {setExpandedTab(0)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto mb-auto rotate-0 w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(0)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto mb-auto rotate-0 w-[20px] ml-1 h-[27px] transition-all duration-150"/>
           </p>
         }
 
         {expandedTab == 0 ?
         <>
           <p className="text-white mt-1">
-            Go to <a className="text-[#e8b20f]" href="https://translate.google.com/?sl=auto&tl=en&op=translate">translate.google.com</a> on a web browser, or search {"\"Google Translate\""}
+            {contentVersion.translation_google_translate_instructions_1 || "Go to"} <a className="text-[#e8b20f]" href="https://translate.google.com/?sl=auto&tl=en&op=translate">translate.google.com</a> {contentVersion.translation_google_translate_instructions_2 || "on a web browser, or search \"Google Translate\""}
           </p>
           <p className="text-white mt-2">
-            Google Translate is capable of translating <span className="text-[#e8b20f]">Text, Images, Documents, and Websites</span>
+            {contentVersion.translation_google_translate_instructions_3 || "Google Translate is capable of translating"} <span className="text-[#e8b20f]">{contentVersion.translation_google_translate_instructions_4 || "Text, Images, Documents, and Websites"}</span>
           </p>
         </>
         
@@ -451,28 +511,28 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
       <div className="rounded-md bg-[#184366] border-[#e8b20f] p-2 border-2 min-w-[250px] w-[45%]">
         <h1 className="text-white text-[20px] flex">
           <GoogleLensIcon className="fill-white w-[40px] h-[25px] mt-auto mb-auto p-0.5"/>
-          Google Lens
+          {contentVersion.translation_google_lens_header || "Google Lens"}
         </h1>
         <p className="text-white">
-        Take a photo of text and translate it instantly.
+        {contentVersion.translation_google_lens_description || "Take a photo of text and translate it instantly."}
         </p>
         {
           expandedTab == 1 ?
-          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto rotate-180 mb-auto w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto rotate-180 mb-auto w-[20px] ml-1 h-[27px] transition-all duration-150"/>
           </p>
           :
-          <p onClick={() => {setExpandedTab(1)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto mb-auto rotate-0 w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(1)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto mb-auto rotate-0 w-[20px] ml-1 h-[27px] transition-all duration-150"/>
           </p>
         }
 
         {expandedTab == 1 ?
         <>
           <p className="text-white mt-1">
-          Download the Google Lens app from the  <a onClick={() => {
+          {contentVersion.translation_google_lens_instructions_1 || "Download the Google Lens app from the"}  <a onClick={() => {
             /*
             if (iOS()){
               const link = 'itms-apps://apps.apple.com/id/app/lens-translate-image-search/id1587316791?l=id';
@@ -481,10 +541,10 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
               
             }
             */
-          }}   className="text-[#e8b20f]">{iOS() ? "App Store (search \"Google Lens\")" : "Google Play Store"}</a> on your phone
+          }}   className="text-[#e8b20f]">{contentVersion.translation_google_lens_instructions_stores || (iOS() ? "App Store (search \"Google Lens\")" : "Google Play Store")}</a> {contentVersion.translation_google_lens_instructions_2 || "on your phone"}
           </p>
           <p className="text-white mt-2">
-            Google lens uses your phone{"\'"}s camera to translate real text on <span className="text-[#e8b20f]">Signs, Paper, or any other physically displayed text</span>
+            {contentVersion.translation_google_lens_instructions_3 || "Google lens uses your phone\'s camera to translate real text on"} <span className="text-[#e8b20f]">{contentVersion.translation_google_lens_instructions_4 || "Signs, Paper, or any other physically displayed text"}</span>
           </p>
         </>
         
@@ -498,31 +558,31 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
       <div className="rounded-md bg-[#184366] border-[#e8b20f] p-2 border-2 min-w-[250px] w-[45%]">
         <h1 className="text-white text-[20px] flex">
           <DocsIcon className="fill-white w-[40px] h-[35px] mt-auto mb-auto mr-1 p-0.5"/>
-          Google Docs Translation
+          {contentVersion.translation_google_docs_header || "Google Docs Translation"}
         </h1>
         <p className="text-white">
-        Translate Google Docs easily between languages
+        {contentVersion.translation_google_docs_description || "Translate Google Docs easily between languages"}
         </p>
         {
           expandedTab == 2 ?
-          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto rotate-180 mb-auto w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto rotate-180 mb-auto ml-1 w-[20px] h-[27px] transition-all duration-150"/>
           </p>
           :
-          <p onClick={() => {setExpandedTab(2)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto mb-auto rotate-0 w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(2)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto mb-auto rotate-0 ml-1 w-[20px] h-[27px] transition-all duration-150"/>
           </p>
         }
 
         {expandedTab == 2 ?
         <>
           <p className="text-white mt-1">
-          In the <span className="text-[#e8b20f]">{"\""}Tools{"\""}</span> menu of your Google Doc select the <span className="text-[#e8b20f]">{"\""}Translate document{"\""}</span> option
+          {contentVersion.translation_google_docs_instructions_1 || "In the"} <span className="text-[#e8b20f]">{"\""}Tools{"\""}</span> {contentVersion.translation_google_docs_instructions_2 || "menu of your Google Doc select the"} <span className="text-[#e8b20f]">{"\""}Translate document{"\""}</span> {contentVersion.translation_google_docs_instructions_3 || "option"}
           </p>
           <p className="text-white mt-2">
-            Select a target language, and a name for the new document and it will create a new tab in your browser with the new document
+            {contentVersion.translation_google_docs_instructions_4 || "Select a target language, and a name for the new document and it will create a new tab in your browser with the new document"}
           </p>
         </>
         
@@ -536,28 +596,28 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
       <div className="rounded-md bg-[#184366] border-[#e8b20f] p-2 border-2 min-w-[250px] w-[45%]">
         <h1 className="text-white text-[20px] flex">
           <MicrophoneIcon className="fill-white w-[40px] h-[35px] mt-auto mb-auto mr-1 p-0.5"/>
-          Canvas Reader
+          Canvas {contentVersion.translation_canvas_reader_header || "Reader"}
         </h1>
         <p className="text-white">
-          Have Canvas content read aloud to you.
+          {contentVersion.translation_canvas_reader_description || "Have Canvas content read aloud to you."}
         </p>
         {
           expandedTab == 3 ?
-          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto rotate-180 mb-auto w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto rotate-180 ml-1 mb-auto w-[20px] h-[27px] transition-all duration-150"/>
           </p>
           :
-          <p onClick={() => {setExpandedTab(3)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto mb-auto rotate-0 w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(3)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto mb-auto ml-1 rotate-0 w-[20px] h-[27px] transition-all duration-150"/>
           </p>
         }
 
         {expandedTab == 3 ?
         <>
           <p className="text-white mt-1">
-          In the <span className="text-[#e8b20f]">top right of an assignment, page, or syllabus</span> select the immersive reader button, then <span className="text-[#e8b20f]">select the top most right reading preferences button, and select a translation language</span> option
+          {contentVersion.translation_canvas_reader_instructions_1 || "In the"} <span className="text-[#e8b20f]">{contentVersion.translation_canvas_reader_instructions_2 || "top right of an assignment, page, or syllabus"}</span> {contentVersion.translation_canvas_reader_instructions_3 || "select the immersive reader button, then"} <span className="text-[#e8b20f]">{contentVersion.translation_canvas_reader_instructions_4 || "select the top most right reading preferences button, and select a translation language"}</span> {contentVersion.translation_canvas_reader_instructions_5 || "option"}
           </p>
         </>
         
@@ -571,31 +631,31 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
       <div className="rounded-md bg-[#184366] border-[#e8b20f] p-2 border-2 min-w-[250px] w-[45%]">
         <h1 className="text-white text-[20px] flex">
           <ChatIcon className="fill-white w-[40px] h-[35px] mt-auto mb-auto mr-1 p-0.5"/>
-          Kami Reader
+          Kami {contentVersion.translation_canvas_reader_header || "Reader"}
         </h1>
         <p className="text-white">
-        Translate PDF documents and worksheets.
+        {contentVersion.translation_kami_reader_description|| "Translate PDF documents and worksheets."}
         </p>
         {
           expandedTab == 4 ?
-          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto rotate-180 mb-auto w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto rotate-180 ml-1 mb-auto w-[20px] h-[27px] transition-all duration-150"/>
           </p>
           :
-          <p onClick={() => {setExpandedTab(4)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto mb-auto rotate-0 w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(4)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto mb-auto ml-1 rotate-0 w-[20px] h-[27px] transition-all duration-150"/>
           </p>
         }
 
         {expandedTab == 4 ?
         <>
           <p className="text-white mt-1">
-            When using Kami on any document select <span className="text-[#e8b20f]">{"\""}Understand{"\""}</span> on the sidebar, and click the language icon: <MicrosoftIcon className="fill-[#e8b20f]"/>
+            {contentVersion.translation_kami_reader_instructions_1 || "When using Kami on any document select"} <span className="text-[#e8b20f]">{"\""}Understand{"\""}</span> {contentVersion.translation_kami_reader_instructions_2 || "on the sidebar, and click the language icon:"} <MicrosoftIcon className="fill-[#e8b20f]"/>
           </p>
           <p className="text-white mt-5">
-            After enabling the translation feature, highlight some text and select a language. <u><a href="https://help.kamiapp.com/en/articles/10414828-how-to-use-the-understand-tool" className="text-[#e8b20f]">See visual explanation here.</a></u>
+            {contentVersion.translation_kami_reader_instructions_3 || "After enabling the translation feature, highlight some text and select a language."} <u><a href="https://help.kamiapp.com/en/articles/10414828-how-to-use-the-understand-tool" className="text-[#e8b20f]">{contentVersion.translation_kami_reader_instructions_4 || "See visual explanation here."}</a></u>
           </p>
         </>
         
@@ -610,28 +670,28 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
       <div className="rounded-md bg-[#184366] border-[#e8b20f] p-2 border-2 min-w-[250px] w-[45%]">
         <h1 className="text-white text-[20px] flex">
           <MicrosoftIcon className="fill-white w-[40px] h-[35px] mt-auto mb-auto mr-1 p-0.5"/>
-          Microsoft Translate
+          {contentVersion.translation_microsoft_translate_header || "Microsoft Translate"}
         </h1>
         <p className="text-white">
-          Translate PDF documents and worksheets.
+          {contentVersion.translation_microsoft_translate_description || "Translate conversations between languages."}
         </p>
         {
           expandedTab == 5 ?
-          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto rotate-180 mb-auto w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(-1)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto rotate-180 mb-auto w-[20px] ml-1 h-[27px] transition-all duration-150"/>
           </p>
           :
-          <p onClick={() => {setExpandedTab(5)}} className="text-[#e8b20f] cursor-pointer flex w-[120px] transition-all duration-150">
-            How to use
-            <DownArrowIcon className="mt-auto mb-auto rotate-0 w-[20px] h-[27px] transition-all duration-150"/>
+          <p onClick={() => {setExpandedTab(5)}} className="text-[#e8b20f] cursor-pointer flex w-[200px] transition-all duration-150">
+          {contentVersion.translation_read_more_action_text || "How to use"}
+            <DownArrowIcon className="mt-auto mb-auto rotate-0 w-[20px] ml-1 h-[27px] transition-all duration-150"/>
           </p>
         }
 
         {expandedTab == 5 ?
         <>
           <p className="text-white mt-1">
-          In your web browser go to <u><a className="text-[#e8b20f]" href="https://translator.microsoft.com">translator.microsoft.com</a></u> and enter your conversation code, username, language, and the region you{"\'"}re from
+          {contentVersion.translation_microsoft_translate_instructions_1 || "In your web browser go to"} <u><a className="text-[#e8b20f]" href="https://translator.microsoft.com">translator.microsoft.com</a></u> {contentVersion.translation_microsoft_translate_instructions_2 || "and enter your conversation code, username, language, and the region you\'re from"}
           </p>
         </>
         
@@ -646,13 +706,13 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
     </div>
 
     <div className="w-[80%] shadow-lg items-center p-1 justify-center m-auto rounded-md mt-20 bg-[#184366]"> 
-      <h1 className="text-left w-[fit-content]] text-white text-[30px] p-7 pr-0 flex flex-wrap">Helpful Phrases & Sentence Starters
+      <h1 className="text-left w-[fit-content]] text-white text-[30px] p-7 pr-0 flex flex-wrap">{contentVersion.sentence_starter_header || "Helpful Phrases & Sentence Starters"}
       <ConversationIcon className="m-auto fill-[#ffffff] ml-[1%] w-10 h-9"/>
       </h1>
         
       <div className="flex gap-2 flex-wrap">
       <div className="p-7 min-w-[300px] w-[45%]">
-        <h1 className="text-[#e8b20f] text-[25px]">In the Classroom</h1>
+        <h1 className="text-[#e8b20f] text-[25px]">{contentVersion.sentence_starter_section_1 || "In the Classroom"}</h1>
         <div className="mt-5 flex">
           <div className="w-[5px] mb-auto mt-auto mr-2 h-[5px] rounded-sm bg-[#e8b20f]"/>
           <p className="text-white text-[18px]">
@@ -661,7 +721,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
           
         </div>
         <p className="text-gray-300 ml-3">
-          No entiendo.
+          {contentVersion.sentence_starter_1 || "No entiendo."}
         </p>
         <div className="mt-5 flex">
           <div className="w-[5px] mb-auto mt-auto mr-2 h-[5px] rounded-sm bg-[#e8b20f]"/>
@@ -671,7 +731,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
           
         </div>
         <p className="text-gray-300 ml-3">
-          ¿Puede repetir eso, por favor?
+          {contentVersion.sentence_starter_2 || "¿Puede repetir eso, por favor?"}
         </p>
         <div className="mt-5 flex">
           <div className="w-[5px] mb-auto mt-auto mr-2 h-[5px] rounded-sm bg-[#e8b20f]"/>
@@ -681,7 +741,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
           
         </div>
         <p className="text-gray-300 ml-3">
-          ¿Cómo se dice ___ en inglés?
+          {contentVersion.sentence_starter_3 || "¿Cómo se dice ___ en inglés?"}
         </p>
         <div className="mt-5 flex">
           <div className="w-[5px] mb-auto mt-auto mr-2 h-[5px] rounded-sm bg-[#e8b20f]"/>
@@ -691,11 +751,11 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
           
         </div>
         <p className="text-gray-300 ml-3">
-          ¿Puedo ir al baño?
+          {contentVersion.sentence_starter_4 || "¿Puedo ir al baño?"}
         </p>
       </div>
       <div className="p-7 min-w-[300px] w-[45%]">
-        <h1 className="text-[#e8b20f] text-[25px]">Sentence Starters</h1>
+        <h1 className="text-[#e8b20f] text-[25px]">{contentVersion.sentence_starter_section_2 || "Sentence Starters"}</h1>
         <div className="mt-5 flex">
           <div className="w-[5px] mb-auto mt-auto mr-2 h-[5px] rounded-sm bg-[#e8b20f]"/>
           <p className="text-white text-[18px]">
@@ -704,7 +764,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
           
         </div>
         <p className="text-gray-300 ml-3">
-          Yo pienso que...
+          {contentVersion.sentence_starter_5 || "Yo pienso que..."}
         </p>
         <div className="mt-5 flex">
           <div className="w-[5px] mb-auto mt-auto mr-2 h-[5px] rounded-sm bg-[#e8b20f]"/>
@@ -714,7 +774,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
           
         </div>
         <p className="text-gray-300 ml-3">
-        En mi opinión...
+        {contentVersion.sentence_starter_6 || "En mi opinión..."}
         </p>
         <div className="mt-5 flex">
           <div className="w-[5px] mb-auto mt-auto mr-2 h-[5px] rounded-sm bg-[#e8b20f]"/>
@@ -724,7 +784,7 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
           
         </div>
         <p className="text-gray-300 ml-3">
-          Estoy de acuerdo/en desacuerdo porque...
+          {contentVersion.sentence_starter_7 || "Estoy de acuerdo/en desacuerdo porque..."}
         </p>
         <div className="mt-5 flex">
           <div className="w-[5px] mb-auto mt-auto mr-2 h-[5px] rounded-sm bg-[#e8b20f]"/>
@@ -734,15 +794,59 @@ export default function Home({content, onLangChanged, onLangSearchChanged}) {
           
         </div>
         <p className="text-gray-300 ml-3">
-          ¿Me puede ayudar con...
+          {contentVersion.sentence_starter_8 || "¿Me puede ayudar con..."}
         </p>
       </div>
       </div>
       
     </div>
 
-    <div className="justify-items-center p-10">
-      <p className="text-3xl font-sans">{}</p>
+    <div className="w-[80%] justify-center m-auto mt-20">
+      <h1 className="text-left w-[fit-content]] text-[#184366] text-[30px] p-0 pr-0 flex">{contentVersion.contact_information_header || "Contact Information"}</h1>
+    </div>
+
+    <div className="w-[80%] shadow-lg items-center p-0 justify-center m-auto rounded-md mt-20 bg-[#184366]"> 
+        <div className="w-[100%] bg-[#e8b20f] p-4 rounded-md rounded-bl-none rounded-br-none">
+            <h1 className="text-[#184366] text-[30px]">{contentVersion.contact_information_header_2 || "Need Help?"}</h1>
+            <p className="text-[#184366] text-[20px]">{contentVersion.contact_information_description_1 || "Contact"} {contentVersion.contact_name || "Ms. Lau"} {contentVersion.contact_information_description_2 || "or use Talking Points for assistance."}</p>
+        </div>
+        <div className="w-[100%] p-4 flex justify-start pb-0 m-auto">
+            <div className="bg-[#e8b20f] w-[50px] h-[50px] ml-0 mr-0 rounded-full p-3 m-auto">
+                <EmailIcon className="w-[100%] fill-[#184366] m-auto h-[27px]"/>
+            </div>
+            <div className="p-3 m-auto ml-0">
+                <p className="text-white font-semibold">
+                    {contentVersion.contact_information_action_1 || "Email"} Ms. Lau
+                </p>
+                <p className="text-white">
+                    {contentVersion.contact_email || "Lauall@friscoisd.org"}
+                </p>
+            
+            
+            </div>
+            
+        </div>
+        <div ref={contactScrollRef} className="w-[100%] p-4 flex justify-start m-auto">
+            <div className="bg-[#e8b20f] w-[50px] h-[50px] ml-0 mr-0 rounded-full p-3 m-auto">
+                <TalkingPointsIcon className="w-[100%] fill-[#184366] m-auto h-[27px]"/>
+            </div>
+            <div className="p-3 m-auto ml-0">
+                <p className="text-white font-semibold">
+                    {contentVersion.contact_information_action_2 || "Talking Points"}
+                </p>
+                <p className="text-white">
+                    {contentVersion.contact_information_class_code || "Class Code:"} <span className="text-[#e8b20f] font-semibold">{contentVersion.talking_points_code || "XQKXQR"}</span>
+                </p>
+            
+            
+            </div>
+            
+        </div>
+    </div>
+
+    <div className="mt-10 w-[100%] h-fit bg-[#184366] p-3 justify-center">
+        <p className="m-auto text-center text-white font-light text-[20px]">{contentVersion.student_resources_label || "Bilingual Student Resources"}</p>
+       <u className="decoration-[#e8b20f]"><a href="https://www.friscoisd.org/"> <p className="m-auto text-center text-[#e8b20f] font-light text-[20px]">{contentVersion.fisd_name || "Frisco Independent School District"}</p></a></u>
     </div>
     </>
     
